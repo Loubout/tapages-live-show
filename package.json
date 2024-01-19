@@ -6,8 +6,9 @@
   "scripts": {
     "test": "jest",
     "start": "npm run clean && parcel",
-    "build": "npm run clean && parcel build",
-    "clean": "rimraf ./dist ./.cache"
+    "build": "npm run clean && parcel build --public-url ./",
+    "clean": "rimraf ./dist ./.cache",
+    "push-gh-pages": "push-dir --dir=dist --branch=gh-pages --cleanup --verbose"
   },
   "author": "Loubout",
   "license": "MIT",
@@ -27,6 +28,7 @@
     "http-server": "~14.1.1",
     "jest": "~29.7.0",
     "parcel": "~2.11.0",
+    "push-dir": "^0.4.1",
     "ts-jest": "~29.1.1",
     "typescript": "~5.3.3"
   }
