@@ -6,14 +6,11 @@ import { AlphaFilter, Container, Filter } from 'pixi.js';
 import { analyze } from 'web-audio-beat-detector';
 import { tapagesFrames } from '../assets/loader';
 import { AudioCapture } from './audioCapture';
+import { config } from './config'
+
 
 interface MonkeyFrames {
     main: string;
-}
-
-const CONFIG = {
-    BEAT_ANIMATION_DURATION_MS: 500,
-    BPM: 30,
 }
 
 // Prepare frames
@@ -160,39 +157,69 @@ export class GameApp {
 
     private prepareLogoContainer(): Container {
         const monkeyContainer = new Container();
-        const outlineFilter = new FILTERS.OutlineFilter(2, 0x000000, 1)
+        const outlineFilter = new FILTERS.OutlineFilter(3, 0x000000, 1)
 
         const monkey: PIXI.Sprite = PIXI.Sprite.from(monkeyFrames.main);
 
 
         const motionBlurFilter = new FILTERS.MotionBlurFilter([30,30], 15)
-        const RGCSplitFilter = new FILTERS.RGBSplitFilter([11,0], [2,0], [1,4])
-
-        const bpmFilters = [motionBlurFilter, RGCSplitFilter]
+        const RGCSplitFilter = new FILTERS.RGBSplitFilter([20,0], [12,-3], [2,4])
+        const glowFilter = new FILTERS.GlowFilter({
+            distance: 10,
+            outerStrength: 10,
+            innerStrength: 10,
+            color: 0xffb3f0,
+            quality: .5,
+            knockout: true,
+            alpha: .9,
+        })
+        const shockwaveFilter = new FILTERS.ShockwaveFilter([0.5,0.5], {
+            amplitude:40,
+            wavelength:150,
+            speed:100,
+            brightness:1,
+            radius:-1,
+        },400
+        )
+        const filterReflection = new FILTERS.ReflectionFilter({
+            mirror: false,
+            boundary: 0,
+            amplitude: [10,30],
+            waveLength: [40,80],
+            alpha: [1, 1],
+        })
+        const filterZoomBlur = new FILTERS.ZoomBlurFilter()
+        const bpmFilters = [
+            [motionBlurFilter, RGCSplitFilter],
+            [glowFilter],
+            //[shockwaveFilter],
+            [filterReflection],
+        ]
 
         const alwaysOnFilters = [ outlineFilter ];
         monkeyContainer.filters = alwaysOnFilters;
         monkey.x = this.app.screen.width / 2;
         monkey.y = this.app.screen.height / 2;
-        monkey.height = this.app.screen.width * 0.4;
+        monkey.height = this.app.screen.width * config.LOGO_SIZE_RATIO;
         monkey.width = monkey.height
         monkey.anchor.set(0.5, 0.5);
 
 
         this.app.ticker.add((delta) => {
-            monkey.rotation += .003
+            filterReflection.time += 0.1
+            monkey.rotation += config.LOGO_ROTATION_SPEED
         })
         
         const bpmTicker = new Ticker();
-        bpmTicker.minFPS = bpmToFps(CONFIG.BPM)
-        bpmTicker.maxFPS = bpmToFps(CONFIG.BPM)
+        bpmTicker.minFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
+        bpmTicker.maxFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
         bpmTicker.start();
 
         bpmTicker.add((time) => {
-            monkeyContainer.filters = monkeyContainer.filters.concat(bpmFilters)
+            monkeyContainer.filters = monkeyContainer.filters.concat(bpmFilters[(Math.floor(Math.random() * bpmFilters.length))])
             setTimeout(_ => {
                 monkeyContainer.filters = alwaysOnFilters
-            }, CONFIG.BEAT_ANIMATION_DURATION_MS)
+            }, config.LOGO_ANIMATION_DURATION_MS)
         })
 
         monkeyContainer.addChild(monkey)
