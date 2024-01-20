@@ -19,6 +19,7 @@
     "@pixi/filter-outline": "^5.2.0",
     "@pixi/filter-rgb-split": "^5.1.1",
     "@pixi/ticker": "^7.3.3",
+    "@tweenjs/tween.js": "^23.1.1",
     "pixi-filters": "^5.2.1",
     "pixi.js": "~7.3.3",
     "web-audio-beat-detector": "^8.2.1"
