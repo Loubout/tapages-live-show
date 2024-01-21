@@ -1,21 +1,11 @@
 import { Ticker } from '@pixi/ticker';
 import * as TWEEN from '@tweenjs/tween.js';
 import * as FILTERS from 'pixi-filters';
-import { AdvancedBloomFilter, KawaseBlurFilter } from 'pixi-filters';
 import * as PIXI from 'pixi.js';
-import { AlphaFilter, Container, Filter } from 'pixi.js';
-import { analyze } from 'web-audio-beat-detector';
-import { tapagesFrames } from '../assets/loader';
-import { AudioCapture } from './audioCapture';
+import { Container, Filter } from 'pixi.js';
 import { config } from './config'
 import { fragmentSrc } from './starFieldFragment';
-
-interface MonkeyFrames {
-    main: string;
-}
-
-// Prepare frames
-const monkeyFrames: MonkeyFrames = tapagesFrames;
+import tapagesLogo from '../assets/images/logo_tapages_fanfare_white_no_balls.webp';
 
 
 const bpmToFps = (bpmValue: number) => {
@@ -43,11 +33,11 @@ export class GameApp {
         
         const uniforms = {
             iResolution: [this.app.screen.width, this.app.screen.height, 1],
-            iTime : 400,
-            iMouse: [200, 200, 0, 0]
+            iTime : 0,
+            iMouse: [this.app.screen.width*.2, this.app.screen.height*.60, 0, 0]
         }
         const starFilter = new Filter(undefined, fragmentSrc, uniforms)
-        const bloomFilter: AdvancedBloomFilter = new AdvancedBloomFilter({
+        const bloomFilter: AdvancedBloomFilter = new FILTERS.AdvancedBloomFilter({
             threshold: 0.5,
             bloomScale: 0.05,
             brightness: 0.5,
@@ -55,9 +45,8 @@ export class GameApp {
             quality: 4
         })
 
-        var flip = false
         this.app.ticker.add(() => {
-            starFilter.uniforms.iTime += 0.06
+            starFilter.uniforms.iTime += 0.09
         })
         backgroundContainer.filters = [starFilter, bloomFilter]
         backgroundContainer.addChild(background)
@@ -67,15 +56,24 @@ export class GameApp {
     private prepareLogoContainer(): Container {
         const monkeyContainer = new Container();
         const outlineFilter = new FILTERS.OutlineFilter(3, 0x000000, 1)
-        const monkey: PIXI.Sprite = PIXI.Sprite.from(monkeyFrames.main);
+        const monkey: PIXI.Sprite = PIXI.Sprite.from(tapagesLogo);
 
         const motionBlurFilter = new FILTERS.MotionBlurFilter([30,30], 15)
-        const RGCSplitFilter = new FILTERS.RGBSplitFilter([20,0], [12,-3], [2,4])
-        const glowFilter = new FILTERS.GlowFilter({
+        const RGCSplitFilter = new FILTERS.RGBSplitFilter([20,0], [12,-7], [2,4])
+        const filterPinkGlow = new FILTERS.GlowFilter({
             distance: 10,
             outerStrength: 10,
             innerStrength: 4,
             color: 0xffb3f0,
+            quality: .5,
+            knockout: true,
+            alpha: .9,
+        })
+        const filterNeonOrangeGlow = new FILTERS.GlowFilter({
+            distance: 10,
+            outerStrength: 10,
+            innerStrength: 4,
+            color: 0xFF6700,
             quality: .5,
             knockout: true,
             alpha: .9,
@@ -87,14 +85,28 @@ export class GameApp {
             waveLength: [40,80],
             alpha: [1, 1],
         })
+        const filterColorGradientPrideFlag = new FILTERS.ColorGradientFilter(
+            {
+                css: 'linear-gradient(to right, rgb(237, 34, 36), rgb(243, 91, 34), rgb(249, 150, 33), rgb(245, 193, 30), rgb(241, 235, 27) 27%, rgb(241, 235, 27), rgb(241, 235, 27) 33%, rgb(99, 199, 32), rgb(12, 155, 73), rgb(33, 135, 141), rgb(57, 84, 165), rgb(97, 55, 155), rgb(147, 40, 142))',
+                alpha: 1
+            }
+        )
+    const filterOutline = new FILTERS.GlowFilter({
+        distance: 10,
+        outerStrength: 10,
+        innerStrength:4,
+        color: 0xFFFFFF,
+    })
+        const filterColorReplace = new FILTERS.ColorOverlayFilter(0x000000)
         const bpmFilters = [
-            [motionBlurFilter, RGCSplitFilter],
-            [glowFilter],
+            [RGCSplitFilter, motionBlurFilter],
+            [filterPinkGlow],
             [filterReflection],
+            [filterColorGradientPrideFlag],
+            [filterNeonOrangeGlow],
+            [filterColorReplace, filterOutline],
         ]
 
-        const alwaysOnFilters = [ outlineFilter ];
-        monkeyContainer.filters = alwaysOnFilters;
         monkey.x = this.app.screen.width / 2;
         monkey.y = this.app.screen.height / 2;
 
@@ -102,49 +114,48 @@ export class GameApp {
         const logoDim = smallestDimension * config.LOGO_SIZE_RATIO
         monkey.height = logoDim;
         monkey.width = logoDim;
-
         monkey.anchor.set(0.5, 0.5);
 
-        this.app.ticker.add((delta) => {
-            filterReflection.time += 0.1
-            monkey.rotation += config.LOGO_ROTATION_SPEED
-        })
-        
         const bpmTicker = new Ticker();
         bpmTicker.minFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
         bpmTicker.maxFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
         bpmTicker.start();
 
         bpmTicker.add((time) => {
-            monkeyContainer.filters = monkeyContainer.filters.concat(bpmFilters[(Math.floor(Math.random() * bpmFilters.length))])
-            setTimeout(_ => {
-                monkeyContainer.filters = alwaysOnFilters
-            }, config.LOGO_ANIMATION_DURATION_MS)
+            monkeyContainer.filters = bpmFilters[(Math.floor(Math.random() * bpmFilters.length))]
+            // setTimeout(_ => {
+            //     monkeyContainer.filters = []
+            // }, config.LOGO_ANIMATION_DURATION_MS)
+            bounceAnimation.start()
         })
-        // const animation = new TWEEN.Tween(monkey.scale)
-        //     .to([1.15,1], 2000)
-        //     .easing(TWEEN.Easing.Bounce.Out); 
+
+        const monkeyBaseDimension = { width: monkey.width, height: monkey.height }
+        const animationObject = { val: 1 }
+        const bounceAnimation = new TWEEN.Tween(animationObject)
+            .to({val: 1.15}, 150)
+            .yoyo(true)
+            .repeat(1)
+            .easing(TWEEN.Easing.Bounce.InOut)
+            .onUpdate(() => {
+                monkey.width = monkeyBaseDimension.width * animationObject.val
+                monkey.height = monkeyBaseDimension.height * animationObject.val
+            })
+
+        this.app.ticker.add((delta) => {
+            monkey.rotation += config.LOGO_ROTATION_SPEED
+            filterColorGradientPrideFlag.angle += 4
+            filterReflection.time += .1
+            bounceAnimation.update()
+            
+        })
         monkeyContainer.addChild(monkey)
         
         return monkeyContainer
     }
 
-    private async setupAudioCapture() {
-        const audioCapture = new AudioCapture();
-        const audioBuffer = await audioCapture.getAudioBuffer();
-        analyze(audioBuffer)
-            .then((tempo) => {
-                console.log(tempo)
-            })
-            .catch((error) => {
-                console.error(error)
-            })
-    }
-
     private init() {
         const backgroundContainer = this.prepareBackgroundContainer();
         const logoContainer = this.prepareLogoContainer();
-        //this.setupAudioCapture()
         this.app.stage.addChild(backgroundContainer);
         this.app.stage.addChild(logoContainer);
     }
