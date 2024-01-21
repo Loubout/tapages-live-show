@@ -20,7 +20,7 @@ export class GameApp {
         parent.appendChild(this.app.view); // Hack for parcel HMR
 
         this.init();
-    }   
+    }
 
     private prepareBackgroundContainer(): Container {
         const background: PIXI.Sprite = PIXI.Sprite.from('../assets/image/fff.png');
@@ -30,25 +30,18 @@ export class GameApp {
         background.width = this.app.screen.width;
         background.height = this.app.screen.height;
         const backgroundContainer = new Container();
-        
+
         const uniforms = {
             iResolution: [this.app.screen.width, this.app.screen.height, 1],
             iTime : 0,
             iMouse: [this.app.screen.width*.2, this.app.screen.height*.60, 0, 0]
         }
         const starFilter = new Filter(undefined, fragmentSrc, uniforms)
-        const bloomFilter = new FILTERS.AdvancedBloomFilter({
-            threshold: 0.5,
-            bloomScale: 0.05,
-            brightness: 0.5,
-            blur: 0.3,
-            quality: 4
-        })
-
+        const overlay = new FILTERS.ColorOverlayFilter(0x000000, .25)
         this.app.ticker.add(() => {
             starFilter.uniforms.iTime += config.STARFIELD_SPEED
         })
-        backgroundContainer.filters = [starFilter, bloomFilter]
+        backgroundContainer.filters = [starFilter, overlay]
         backgroundContainer.addChild(background)
         return backgroundContainer
     }
@@ -143,12 +136,12 @@ export class GameApp {
         bpmTicker.minFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
         bpmTicker.maxFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
         bpmTicker.start();
-    
+
         bpmTicker.add((_) => {
             monkeyContainer.filters = randomizedFilters[(Math.floor(Math.random() * randomizedFilters.length))]
             bounceAnimation.start()
         })
-    
+
         this.app.ticker.add((delta) => {
             monkey.rotation += config.LOGO_ROTATION_SPEED
             bounceAnimation.update()
@@ -165,4 +158,3 @@ export class GameApp {
         this.app.stage.addChild(logoContainer);
     }
 }
-

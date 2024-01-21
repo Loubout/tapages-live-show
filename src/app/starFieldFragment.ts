@@ -16,7 +16,7 @@ export const fragmentSrc = `
         float Star(vec2 uv, float flare){
             float d = length(uv);
             float m = .05/d;
-            
+
             float rays = max(0.,1.-abs(uv.x * uv.y * 1000.));
             m += rays* flare;
             uv *= Rot(3.1415/4.);
@@ -47,7 +47,7 @@ export const fragmentSrc = `
                     float size = fract(n*345.32);
                     float star = Star(gv-offs-vec2(n,fract(n*34.))+.5,smoothstep(.8, .9, size));
                     vec3 color = sin(vec3(.2,.3,.9)*fract(n*2345.2)*6.2831* 100.)* 0.5 + 0.5;
-                    color = color* vec3(1,.5,1.+size);            
+                    color = color* vec3(1,.5,1.+size);
                     color += pow(length(gv - offs) * 0.1,mod(iTime + n,.2));
                     star *= sin(iTime*90.+n*6.2831)*.2+1.;
                     col += size * star * color;
@@ -65,20 +65,20 @@ export const fragmentSrc = `
             uv += M *4.;
             uv *= Rot(t);
             vec3 col = vec3(0.02, 0.02, 0.15);
-            
+
             for(float i=0.; i<1.; i+=1./NUM_LAYERS) {
                 float depth = fract(i+t);
                 float scale = mix(20.,.5,depth);
                 float fade = depth* smoothstep(1.,.9,depth);
                 col += StarLayer(uv*scale+i*453.2-M)*fade;
             }
-            
+
             //red grid
             //if(gv.x > .48 || gv.y > .48) col.x = 1.;
-            
+
             //col.rg += id*.4;
             //col += Hash21(uv);
-            
+
             // Output to screen
             gl_FragColor = vec4(col,1.0);
         }
