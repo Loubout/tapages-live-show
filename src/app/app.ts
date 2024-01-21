@@ -37,27 +37,23 @@ export class GameApp {
             iMouse: [this.app.screen.width*.2, this.app.screen.height*.60, 0, 0]
         }
         const starFilter = new Filter(undefined, fragmentSrc, uniforms)
-        const bloomFilter: AdvancedBloomFilter = new FILTERS.AdvancedBloomFilter({
+        const bloomFilter = new FILTERS.AdvancedBloomFilter({
             threshold: 0.5,
             bloomScale: 0.05,
             brightness: 0.5,
-            blur: 0.8,
+            blur: 0.3,
             quality: 4
         })
 
         this.app.ticker.add(() => {
-            starFilter.uniforms.iTime += 0.09
+            starFilter.uniforms.iTime += config.STARFIELD_SPEED
         })
         backgroundContainer.filters = [starFilter, bloomFilter]
         backgroundContainer.addChild(background)
         return backgroundContainer
     }
 
-    private prepareLogoContainer(): Container {
-        const monkeyContainer = new Container();
-        const outlineFilter = new FILTERS.OutlineFilter(3, 0x000000, 1)
-        const monkey: PIXI.Sprite = PIXI.Sprite.from(tapagesLogo);
-
+    private prepareLogoFilters(): PIXI.Filter[][] {
         const motionBlurFilter = new FILTERS.MotionBlurFilter([30,30], 15)
         const RGCSplitFilter = new FILTERS.RGBSplitFilter([20,0], [12,-7], [2,4])
         const filterPinkGlow = new FILTERS.GlowFilter({
@@ -67,7 +63,6 @@ export class GameApp {
             color: 0xffb3f0,
             quality: .5,
             knockout: true,
-            alpha: .9,
         })
         const filterNeonOrangeGlow = new FILTERS.GlowFilter({
             distance: 10,
@@ -76,7 +71,6 @@ export class GameApp {
             color: 0xFF6700,
             quality: .5,
             knockout: true,
-            alpha: .9,
         })
         const filterReflection = new FILTERS.ReflectionFilter({
             mirror: false,
@@ -91,44 +85,47 @@ export class GameApp {
                 alpha: 1
             }
         )
-    const filterOutline = new FILTERS.GlowFilter({
-        distance: 10,
-        outerStrength: 10,
-        innerStrength:4,
-        color: 0xFFFFFF,
-    })
-        const filterColorReplace = new FILTERS.ColorOverlayFilter(0x000000)
-        const bpmFilters = [
+        const filterWhiteNeonOutline = new FILTERS.GlowFilter({
+            distance: 10,
+            outerStrength: 10,
+            innerStrength: 4,
+            color: 0xFFFFFF,
+            quality: .5,
+        })
+        const filterBlackOverlay = new FILTERS.ColorOverlayFilter(0x000000)
+
+        this.app.ticker.add((delta) => {
+            filterColorGradientPrideFlag.angle += 4
+            filterReflection.time += .1
+        })
+        return [
             [RGCSplitFilter, motionBlurFilter],
             [filterPinkGlow],
             [filterReflection],
             [filterColorGradientPrideFlag],
             [filterNeonOrangeGlow],
-            [filterColorReplace, filterOutline],
+            [filterBlackOverlay, filterWhiteNeonOutline],
+            []
         ]
+    }
+    private prepareLogoContainer(): Container {
+        const monkeyContainer = new Container();
+        const monkey: PIXI.Sprite = PIXI.Sprite.from(tapagesLogo);
 
+        // center logo
         monkey.x = this.app.screen.width / 2;
         monkey.y = this.app.screen.height / 2;
 
+        // set dimensions
         const smallestDimension = Math.min(this.app.screen.width, this.app.screen.height)
         const logoDim = smallestDimension * config.LOGO_SIZE_RATIO
         monkey.height = logoDim;
         monkey.width = logoDim;
         monkey.anchor.set(0.5, 0.5);
 
-        const bpmTicker = new Ticker();
-        bpmTicker.minFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
-        bpmTicker.maxFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
-        bpmTicker.start();
+        const randomizedFilters = this.prepareLogoFilters()
 
-        bpmTicker.add((time) => {
-            monkeyContainer.filters = bpmFilters[(Math.floor(Math.random() * bpmFilters.length))]
-            // setTimeout(_ => {
-            //     monkeyContainer.filters = []
-            // }, config.LOGO_ANIMATION_DURATION_MS)
-            bounceAnimation.start()
-        })
-
+        // setup bounce animation
         const monkeyBaseDimension = { width: monkey.width, height: monkey.height }
         const animationObject = { val: 1 }
         const bounceAnimation = new TWEEN.Tween(animationObject)
@@ -141,15 +138,23 @@ export class GameApp {
                 monkey.height = monkeyBaseDimension.height * animationObject.val
             })
 
+        // sync to bpm value config
+        const bpmTicker = new Ticker();
+        bpmTicker.minFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
+        bpmTicker.maxFPS = bpmToFps(config.LOGO_ANIMATIONS_PER_MINUTES)
+        bpmTicker.start();
+    
+        bpmTicker.add((_) => {
+            monkeyContainer.filters = randomizedFilters[(Math.floor(Math.random() * randomizedFilters.length))]
+            bounceAnimation.start()
+        })
+    
         this.app.ticker.add((delta) => {
             monkey.rotation += config.LOGO_ROTATION_SPEED
-            filterColorGradientPrideFlag.angle += 4
-            filterReflection.time += .1
             bounceAnimation.update()
-            
         })
+
         monkeyContainer.addChild(monkey)
-        
         return monkeyContainer
     }
 
