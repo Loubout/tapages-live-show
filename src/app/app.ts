@@ -47,7 +47,7 @@ export class GameApp {
     }
 
     private prepareLogoFilters(): PIXI.Filter[][] {
-        const motionBlurFilter = new FILTERS.MotionBlurFilter([30,30], 15)
+        // const motionBlurFilter = new FILTERS.MotionBlurFilter([30,30], 15)
         const RGCSplitFilter = new FILTERS.RGBSplitFilter([20,0], [12,-7], [2,4])
         const filterPinkGlow = new FILTERS.GlowFilter({
             distance: 10,
@@ -57,6 +57,7 @@ export class GameApp {
             quality: .5,
             knockout: true,
         })
+          
         const filterNeonOrangeGlow = new FILTERS.GlowFilter({
             distance: 10,
             outerStrength: 10,
@@ -92,13 +93,14 @@ export class GameApp {
             filterReflection.time += .1
         })
         return [
-            [RGCSplitFilter, motionBlurFilter],
+            [],
+            [RGCSplitFilter],
             [filterPinkGlow],
             [filterReflection],
             [filterColorGradientPrideFlag],
             [filterNeonOrangeGlow],
-            [filterBlackOverlay, filterWhiteNeonOutline],
-            []
+            // [filterBlackOverlay, filterWhiteNeonOutline],
+            
         ]
     }
     private prepareLogoContainer(): Container {
